@@ -145,7 +145,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   //----------- measurement update -------------//
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
-
+    UpdateRadar(meas_package);
   } else {
     // Laser updates
     UpdateLidar(meas_package);
@@ -323,6 +323,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
 	P_ = (I - K * H_laser_) * P_;
 
+  //calculate NIS(Normalized Innovation Squared)
+  NIS_laser_ = y.transpose() * S.inverse() * y;
+
 }
 
 /**
@@ -424,4 +427,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
+
+  //calculate NIS(Normalized Innovation Squared)
+  NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
 }
