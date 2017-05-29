@@ -263,7 +263,10 @@ void UKF::Prediction(double delta_t) {
 
     P = P + weights_(i) * x_diff * x_diff.transpose() ;
   }
-
+  
+  //write predicted mean and covariance
+  x_ = x;
+  P_ = P;
 }
 
 /**
