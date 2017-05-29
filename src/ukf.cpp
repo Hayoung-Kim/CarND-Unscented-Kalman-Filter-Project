@@ -54,28 +54,39 @@ UKF::UKF() {
   */
 
   ///* State dimension
-  int n_x_ = 5;
+  n_x_ = 5;
 
   ///* Augmented state dimension
-  int n_aug_ = 7;
+  n_aug_ = 7;
 
   ///* Sigma point spreading parameter
-  double lambda_ = 3-n_x_;
+  lambda_ = 3-n_x_;
 
   ///* Weights of sigma points
-  VectorXd weights_ = VectorXd(2*n_aug_+1);;
+  weights_ = VectorXd(2*n_aug_+1);;
 
   ///* the current NIS for radar
-  double NIS_radar_ = 0.0;
+  NIS_radar_ = 0.0;
 
   ///* the current NIS for laser
-  double NIS_laser_ = 0.0;
+  NIS_laser_ = 0.0;
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
   is_initialized_ = false;
 
   ///* initial time
   previous_timestamp_ = 0;
+
+  ///* linear measurement matrix for lidar update
+  H_laser_ = MatrixXd(2,5);
+  H_laser_ << 1, 0, 0, 0, 0,
+              0, 1, 0, 0, 0;
+
+  ///* lidar measurement covariance matrix
+  R_laser_ = MatrixXd(2,2);
+  R_laser_ << std_laspx_ * std_laspx_, 0,
+              0, std_laspy_ * std_laspy_;
+
 }
 
 UKF::~UKF() {}
@@ -130,6 +141,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   previous_timestamp_ = meas_package.timestamp_;
   
   Prediction(dt);
+
+  //----------- measurement update -------------//
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+
+  } else {
+    // Laser updates
+    UpdateLidar(meas_package);
+  }
 }
 
 /**
@@ -282,6 +301,27 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  //linear update (=Kalman filter)
+  VectorXd z = meas_package.raw_measurements_;
+  VectorXd z_pred = H_laser_ * x_;
+	VectorXd y = z - z_pred;
+	MatrixXd Ht = H_laser_.transpose();
+	MatrixXd S = H_laser_ * P_ * Ht + R_laser_;
+	MatrixXd Si = S.inverse();
+	MatrixXd PHt = P_ * Ht;
+	MatrixXd K = PHt * Si;
+
+	//new estimate
+	x_ = x_ + (K * y);
+
+    //angle normalization
+  while (x_(3)> M_PI) x_(3)-=2.*M_PI;
+  while (x_(3)<-M_PI) x_(3)+=2.*M_PI;
+
+	long x_size = x_.size();
+	MatrixXd I = MatrixXd::Identity(x_size, x_size);
+	P_ = (I - K * H_laser_) * P_;
+
 }
 
 /**
