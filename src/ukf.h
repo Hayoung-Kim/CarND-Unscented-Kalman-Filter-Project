@@ -95,6 +95,7 @@ public:
    * matrix
    * @param delta_t Time between k and k+1 in s
    */
+
   void Prediction(double delta_t);
 
   /**
@@ -108,6 +109,9 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+private:
+  long long previous_timestamp_;
 };
 
 #endif /* UKF_H */
